@@ -1,0 +1,43 @@
+TASK1
+
+в папке cont1 Dockerfile:
+docker build -t cont1 .
+
+в папке cont2 Dockerfile:
+docker build -t cont2 .
+
+cont2 будет отслеживать прогресс cont1
+docker run -it  -v /home/lena/adm/test/:/opt/test/ cont2
+
+
+запуск cont1 c ограничениями:
+
+docker run -it -v /home/lena/adm/test/:/opt/test/ --device-read-iops /dev/urandom:5 cont1
+
+в cont1 выполним:
+dd if=/dev/urandom of=/file.tmp bs=1024 count=1000000 oflag=direct status=progress 2>/opt/test/1.txt
+вывод dd будет записываться в файл 1.txt  2-stderror
+
+или так:
+dd if=/dev/urandom of=tmp.txt bs=1024 count=1000000 oflag=direct 2> /opt/test/dd-out.txt & bgid=$!; while true; do sleep 5; kill -USR1 $bgid || break ; done
+вывод будет записан в dd-out.txt
+
+во время выполнения операции dd в cont1, в cont2 выполним вывод прогресса из доступного 1.txt или dd-out.txt
+while true; do sleep 5; tail -1 1.txt; done
+
+while true; do sleep 5; tail -1 dd-out.txt; done
+
+
+TASK3
+
+в дир делаем изменения ограничений для cont1
+/sys/fs/cgroup/blkio/docker/1280ec8022510a683ce78e68d242080e7a575383ba9d613f023caf1dad7c88d8  
+
+echo "1:9 10" > blkio.throttle.read_iops_device
+
+я добавляла так же для эксперимента
+echo "254:0 1048576" > blkio.throttle.write_bps_device   ограничение на запись 1M
+
+
+из cont2  так же наблюдаем динамику
+пример вывода  .doc файле
